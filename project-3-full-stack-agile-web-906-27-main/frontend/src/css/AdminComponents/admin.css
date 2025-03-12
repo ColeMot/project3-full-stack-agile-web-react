@@ -1,0 +1,162 @@
+@import url('https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+.admin-body {
+  --text-size: 14px;  
+  --text-size-large: 18px;
+  background: linear-gradient(to bottom, #3f312d 0%, #100d0c 100%);
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: auto;
+}
+
+.colorblind-mode {
+  filter: grayscale(100%); 
+}
+
+.admin-colorblind-toggle {
+  position: absolute;
+  top: 8px !important;
+  left: 80px;
+  cursor: pointer;
+  width: 50px; 
+  height: auto;
+  transition: box-shadow 0.3s ease; 
+}
+
+.admin-colorblind-toggle:hover {
+  filter: drop-shadow(8px 8px 10px rgba(0, 0, 0, 0.7));
+}
+
+.admin-body, .user-input input, .user-input button, h2, h1 {
+  font-size: var(--text-size);  
+}
+
+.text-size-increased .admin-page, .text-size-increased .admin-page .user-input input, .text-size-increased .admin-page .user-input button, .text-size-increased .admin-page h2, .text-size-increased .admin-page h1 {
+  font-size: var(--text-size-large); 
+}
+
+ .admin-text-size-toggle {
+  position: absolute;
+  top: 12px !important;
+  left: 170px;
+  cursor: pointer;
+  width: 40px; 
+  height: auto;
+  transition: box-shadow 0.3s ease;
+}
+
+.admin-text-size-toggle:hover {
+  filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.7));
+}
+
+.back-to-home-button {
+  top: 10px;
+  background: linear-gradient(to bottom, #370000, #1d0101);
+  color: #ffc700;
+  border: 8px solid black;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-family: "Rowdies";
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: absolute;
+  text-decoration: none;
+}
+
+
+.admin-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: linear-gradient(to bottom, #3f312d 0%, #1f1a18 100%);
+  margin: 0px; 
+  padding: 170px;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  color: #fff; 
+  border-radius: 10px;
+  font-family: "Arvo";
+  border: 8px solid black;
+  background: #3f312d;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 
+              0 20px 40px rgba(0, 0, 0, 0.25); 
+}
+
+.VIpgJd-ZVi9od-ORHb-OEVmcd {
+  display: none !important;
+}
+body {
+  top: -30px !important;
+}
+#goog-gt- {
+  display: none !important;
+}
+#google_translate_element {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  z-index: 1000;
+}
+.user-input {
+  margin-bottom: 0px;
+  width: 100%; 
+}
+
+.user-input input[type="text"],
+.user-input input[type="email"] {
+  padding: 10px;
+  margin-bottom: 10px;
+  width: calc(100% - 20px);
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.user-input button {
+  padding: 10px 20px;
+  background: linear-gradient(to bottom, #370000, #1d0101);
+  color: #ffc700;
+  border: 8px solid black;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: "Rowdies";
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.user-input button:hover {
+  transform: scale(1.1);
+  box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.7);
+}
+
+.user-list {
+  margin-bottom: 20px;
+}
+
+.user-list ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.user-list li {
+  padding: 10px;
+  margin-bottom: 5px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.user-list li:hover {
+  background-color: #f0f0f0;
+}
+
+.user-info {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 10px;
+}

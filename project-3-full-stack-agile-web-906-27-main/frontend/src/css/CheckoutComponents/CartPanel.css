@@ -1,0 +1,168 @@
+@import url('https://fonts.googleapis.com/css2?family=Dosis:wght@200..800&display=swap');
+
+.backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    display: block;
+}
+
+.cart-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 30%;
+    height: 100vh;
+    background: linear-gradient(to bottom, #3f312d, #1f1a18);
+    border: 10px solid black;
+    transform: translateX(100%);
+    transition: transform 0.3s ease-in-out;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.5);
+    z-index: 101;
+    padding-bottom: 130px; 
+}
+
+.cart-panel.open {
+    transform: translateX(0);
+}
+
+.close-cart {
+    width: 100%;
+    padding: 15px 20px;
+    background: linear-gradient(to bottom, #370000, #1d0101);
+    color: #FFC700;
+    border-bottom: 8px solid black;
+    font-family: 'Rowdies', sans-serif;
+    cursor: pointer;
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.6);
+    z-index: 10;
+    transform-origin: top center;
+}
+
+.close-cart:hover {
+    box-shadow: 5px 10px 20px rgba(0, 0, 0, 0.8);
+}
+
+.proceed-payment {
+    width: 80%;
+    padding: 15px 20px;
+    background: linear-gradient(to bottom, #370000, #1d0101);
+    color: #FFC700;
+    border: 8px solid black;
+    font-family: 'Rowdies', sans-serif;
+    cursor: pointer;
+    position: absolute;
+    left: 10%;
+    top: 74%;
+    box-shadow: 5px -5px 15px rgba(0, 0, 0, 0.6);
+    border-radius: 30px;
+    z-index: 10;
+    transform-origin: bottom center;
+}
+
+.proceed-payment:hover {
+    box-shadow: 5px -10px 20px rgba(0, 0, 0, 0.8);
+}
+
+.cart-panel ul {
+    list-style-type: none;
+    margin-top: 60px;
+    padding: 0;
+    overflow-y: auto;
+    max-height: calc(100vh - 300px);
+}
+
+.cart-panel li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    margin: 10px 0;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    color: #FFC700;
+    font-size: 1.1em;
+    font-family: 'Dosis', sans-serif;
+    position: relative;
+}
+
+.item-name-and-details {
+    display: flex;
+    align-items: center;
+    flex-grow: 1;
+}
+
+.item-name {
+    font-size: 1.2em;
+    margin-right: 10px;
+}
+
+.item-quantity-and-price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    font-size: 0.75em;
+    color: rgb(192, 192, 192);
+    font-weight: bold;
+}
+
+.item-total-and-remove {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-grow: 1;
+}
+
+.item-total {
+    font-size: 0.85em;
+    color: #FFC700;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.remove-item-button {
+    background: linear-gradient(to bottom, #370000, #1d0101);
+    color: #FFC700;
+    border: none;
+    font-family: 'Rowdies', sans-serif;
+    cursor: pointer;
+    font-size: 1.5em;
+    width: 35px;
+    height: 35px;
+    border-radius: 20px;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.remove-item-button:hover {
+    box-shadow: 5px 10px 20px rgba(0, 0, 0, 0.8);
+}
+
+.pricing-details {
+    position: absolute;
+    bottom: 290px;
+    left: 10px;
+    right: 10px;
+    padding: 1px;
+    background-color: transparent;
+    border-radius: 5px;
+    color: #FFC700;
+    font-family: 'Rowdies', sans-serif;
+    text-align: center;
+}
+
+.pricing-details div {
+    margin-bottom: 5px;
+}

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: frontend/src/pages/admin.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: frontend/src/pages/admin.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import React, { useState, useEffect } from 'react';
+import firebase from '../firebase';
+import '../css/admin.css'; // Styles for the admin panel
+import '../css/AdminComponents/admin.css'; // Additional styles specific to admin components
+import { Link } from 'react-router-dom';
+import colorblindIcon from "../images/red-green.png"; // Icon for colorblind mode toggle
+import textSizeIcon from "../images/text-size-icon.png"; // Icon for text size increase toggle
+import { useRoleRequired } from '../components/utility';
+
+/**
+ * Admin panel component for user management. Allows adding, deleting, updating, and finding users,
+ * as well as toggling accessibility settings.
+ *
+ * @returns {JSX.Element} The rendered component for the admin panel.
+ * @module Admin
+ */
+const Admin = () => {
+  // Statse for managing the input fields for new, delete, update, and find operations
+  const [newUser, setNewUser] = useState({ username: '', name: '', email: '', role: 'Employee' });
+  const [deleteUsername, setDeleteUsername] = useState('');
+  const [updateUser, setUpdateUser] = useState({ name: '', email: '', role: '' });
+  const [findUsername, setFindUsername] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedUserName, setSelectedUserName] = useState('');
+
+  // States for storing user data and UI state
+  const [users, setUsers] = useState([]);
+  const [currentUserUsername, setCurrentUserUsername] = useState('');
+  const [foundUser, setFoundUser] = useState({ name: '', email: '', role: '' });
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showAllUsers, setShowAllUsers] = useState(false);
+  const [colorBlindMode, setColorBlindMode] = useState(false);
+  const [textSizeIncreased, setTextSizeIncreased] = useState(false);
+
+  // Enforces the role of 'admin' to access this component
+  useRoleRequired(['admin'], '/');
+
+  // Effect to handle authentication state changes
+  useEffect(() => {
+    const unregisterAuthObserver = firebase.auth().onAuthStateChanged(user => {
+      setCurrentUser(user);
+      if (user) {
+        setCurrentUserUsername(user.username);
+      }
+    });
+    return () => unregisterAuthObserver();
+  }, []);
+
+  // Effect to fetch users from Firebase
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const snapshot = await firebase.firestore().collection('users').get();
+        const usersData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          name: doc.data().name,
+          email: doc.data().email,
+          username: doc.data().username,
+          role: doc.data().role
+        }));
+        setUsers(usersData);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  /**
+   * Toggles color blind mode.
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const toggleColorBlindMode = () => {
+    setColorBlindMode(prev => !prev);
+    if (!colorBlindMode) {
+      document.body.classList.add("colorblind-mode");
+    } else {
+      document.body.classList.remove("colorblind-mode");
+    }
+  };
+
+  /**
+   * Toggles increased text size.
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const toggleTextSize = () => {
+    setTextSizeIncreased(prev => !prev);
+    if (!textSizeIncreased) {
+      document.body.classList.add("text-size-increased");
+    } else {
+      document.body.classList.remove("text-size-increased");
+    }
+  };
+
+  /**
+   * Handles input changes to update state based on form inputs.
+   * @param {Object} e - The event object.
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'deleteUsername') {
+      setDeleteUsername(value);
+    } else if (name === 'findUsername') {
+      setFindUsername(value);
+    } else {
+      setUpdateUser(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  /**
+   * Handles changes in the input fields for adding a new user.
+   * @param {Object} e - The event object.
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const handleNewUserChange = (e) => {
+    const { name, value } = e.target;
+    setNewUser(prev => ({ ...prev, [name]: value }));
+  };
+
+  /**
+   * Adds a new user to Firebase.
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const handleAddUser = () => {
+    const exists = users.some(user => user.username === newUser.username);
+    if (exists) {
+      alert('Error: Username already exists. Please choose a different one.');
+      return;
+    }
+    firebase.firestore().collection('users').add(newUser)
+      .then(() => {
+        alert('User added successfully!');
+        setNewUser({ username: '', name: '', email: '', role: 'Employee' });
+      })
+      .catch(error => alert('Error adding user: ' + error.message));
+  };
+
+  /**
+   * Deletes a user from Firebase.
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const handleDeleteUser = () => {
+    if (deleteUsername === currentUserUsername) {
+      alert("You cannot delete your own account.");
+      return;
+    }
+    firebase.firestore().collection('users').where("username", "==", deleteUsername)
+      .get().then(querySnapshot => {
+        const batch = firebase.firestore().batch();
+        querySnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        return batch.commit();
+      })
+      .then(() => {
+        alert('User deleted successfully!');
+        setDeleteUsername('');
+      })
+      .catch(error => alert('Error deleting user: ' + error.message));
+  };
+
+  /**
+   * Finds a user by username.
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const handleFindUser = () => {
+    firebase.firestore().collection('users').where("username", "==", findUsername)
+      .get()
+      .then(querySnapshot => {
+        if (!querySnapshot.empty) {
+          const doc = querySnapshot.docs[0];
+          setSelectedUserId(doc.id);
+          setFoundUser({
+            name: doc.data().name,
+            email: doc.data().email,
+            role: doc.data().role
+          });
+          alert('User found!');
+        } else {
+          alert('No user found with that username.');
+          clearFoundUser();
+        }
+      })
+      .catch(error => alert('Error searching user: ' + error.message));
+  };
+
+  /**
+   * Handles the selection of a user to update.
+   * @param {Object} e - The event object.
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const handleUserSelection = (e) => {
+    const userId = e.target.value;
+    const selectedUser = users.find(user => user.id === userId);
+    if (selectedUser) {
+      setSelectedUserId(selectedUser.id);
+      setSelectedUserName(selectedUser.username);
+      setUpdateUser({
+        name: selectedUser.name,
+        email: selectedUser.email,
+        role: selectedUser.role
+      });
+    }
+  };
+
+  /**
+   * Updates user details in Firebase
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const handleUpdateUser = () => {
+    if (selectedUserName === currentUserUsername) {
+      alert("You cannot update your own account.");
+      return;
+    }
+    if (selectedUserId) {
+      firebase.firestore().collection('users').doc(selectedUserId).update(updateUser)
+        .then(() => {
+          alert('User updated successfully!');
+        })
+        .catch(error => {
+          alert('Error updating user: ' + error.message);
+        });
+    } else {
+      alert('No user selected for update.');
+    }
+  };
+
+  /**
+   * Clears the found user details
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const clearFoundUser = () => {
+    setFoundUser({ name: '', email: '', role: '' });
+    setFindUsername('');
+  };
+
+  /**
+   * Toggles the visibility of all users.
+   * @returns {void}
+   * @memberof module:Admin
+   */
+  const handleShowAllUsers = () => {
+    setShowAllUsers(!showAllUsers);
+  };
+
+  // Render the admin panel UI
+  return (
+    &lt;div className="admin-page">
+      &lt;div className="content">
+        {/* Add New User section */}
+        &lt;div className="user-input">
+          &lt;h2>Add New User&lt;/h2>
+          &lt;input type="text" name="username" placeholder="Username" value={newUser.username} onChange={handleNewUserChange} />
+          &lt;input type="text" name="name" placeholder="Name" value={newUser.name} onChange={handleNewUserChange} />
+          &lt;input type="text" name="email" placeholder="Email" value={newUser.email} onChange={handleNewUserChange} />
+          &lt;select name="role" value={newUser.role} onChange={handleNewUserChange}>
+            &lt;option value="employee">Employee&lt;/option>
+            &lt;option value="manager">Manager&lt;/option>
+            &lt;option value="admin">Admin&lt;/option>
+          &lt;/select>
+          &lt;button onClick={handleAddUser}>Add User&lt;/button>
+          &lt;img
+            src={colorblindIcon}
+            alt="Colorblind Mode"
+            className="admin-colorblind-toggle"
+            onClick={toggleColorBlindMode}
+            style={{ marginLeft: '10px' }}
+          />
+          &lt;img
+            src={textSizeIcon}
+            alt="Increase Text Size"
+            className="admin-text-size-toggle"
+            onClick={toggleTextSize}
+          />
+        &lt;/div>
+
+        {/* Delete User section */}
+        &lt;div className="user-input">
+          &lt;h2>Delete User&lt;/h2>
+          &lt;input type="text" name="deleteUsername" placeholder="Username" value={deleteUsername} onChange={handleInputChange} />
+          &lt;button onClick={handleDeleteUser}>Delete User&lt;/button>
+        &lt;/div>
+
+        {/* Update User section */}
+        &lt;div className="user-input">
+          &lt;h2>Update User&lt;/h2>
+          &lt;select onChange={handleUserSelection} value={selectedUserId || ''}>
+            &lt;option value="">Select a user to update&lt;/option>
+            {users.map(user => (
+              &lt;option key={user.id} value={user.id}>{user.username}&lt;/option>
+            ))}
+          &lt;/select>
+          &lt;input type="text" name="name" placeholder="Name" value={updateUser.name} onChange={handleInputChange} />
+          &lt;input type="text" name="email" placeholder="Email" value={updateUser.email} onChange={handleInputChange} />
+          &lt;select name="role" value={updateUser.role} onChange={handleInputChange}>
+            &lt;option value="employee">Employee&lt;/option>
+            &lt;option value="manager">Manager&lt;/option>
+            &lt;option value="admin">Admin&lt;/option>
+          &lt;/select>
+          &lt;button onClick={handleUpdateUser}>Update User&lt;/button>
+        &lt;/div>
+
+        {/* Find User section */}
+        &lt;div className="user-input">
+          &lt;h2>Find User by Username&lt;/h2>
+          &lt;input type="text" name="findUsername" placeholder="Username" value={findUsername} onChange={handleInputChange} />
+          &lt;button onClick={handleFindUser}>Find User&lt;/button>
+          {foundUser.name &amp;&amp; (
+            &lt;div>
+              &lt;p>Name: {foundUser.name}&lt;/p>
+              &lt;p>Email: {foundUser.email}&lt;/p>
+              &lt;p>Role: {foundUser.role}&lt;/p>
+              &lt;button onClick={clearFoundUser}>Clear&lt;/button>
+            &lt;/div>
+          )}
+        &lt;/div>
+
+        {/* Show All Users section */}
+        &lt;div className="user-input">
+          &lt;button onClick={() => setShowAllUsers(!showAllUsers)}>
+            {showAllUsers ? 'Hide All Users' : 'Show All Users'}
+          &lt;/button>
+          {showAllUsers &amp;&amp; (
+            &lt;div className="user-list">
+              &lt;h2>All Users&lt;/h2>
+              &lt;table className="user-list-table">
+                &lt;thead>
+                  &lt;tr>
+                    &lt;th>Username&lt;/th>
+                    &lt;th>Name&lt;/th>
+                    &lt;th>Email&lt;/th>
+                    &lt;th>Role&lt;/th>
+                  &lt;/tr>
+                &lt;/thead>
+                &lt;tbody>
+                  {users.map(user => (
+                    &lt;tr key={user.id}>
+                      &lt;td>{user.username}&lt;/td>
+                      &lt;td>{user.name}&lt;/td>
+                      &lt;td>{user.email}&lt;/td>
+                      &lt;td>{user.role}&lt;/td>
+                    &lt;/tr>
+                  ))}
+                &lt;/tbody>
+              &lt;/table>
+            &lt;/div>
+          )}
+        &lt;/div>
+        &lt;Link to="/" className="back-to-home-button">
+          Back to Home
+        &lt;/Link>
+      &lt;/div>
+    &lt;/div>
+  );
+}
+
+
+
+
+export default Admin;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="module-CartPanel.html">CartPanel</a></li><li><a href="module-Checkout.html">Checkout</a></li><li><a href="module-Kitchen.html">Kitchen</a></li><li><a href="module-ManagerGUI.html">ManagerGUI</a></li><li><a href="module-Order.html">Order</a></li><li><a href="module-routes_customer_items.html">routes/customer_items</a></li><li><a href="module-routes_itemNames_to_itemIds.html">routes/itemNames_to_itemIds</a></li><li><a href="module-routes_manageingredients.html">routes/manageingredients</a></li><li><a href="module-routes_managemenu.html">routes/managemenu</a></li><li><a href="module-routes_manageorder.html">routes/manageorder</a></li><li><a href="module-routes_manageseasonal.html">routes/manageseasonal</a></li><li><a href="module-routes_order.html">routes/order</a></li><li><a href="module-routes_read.html">routes/read</a></li><li><a href="module-subcategoryModal.html">subcategoryModal</a></li></ul><h3>Classes</h3><ul><li><a href="MainPage.html">MainPage</a></li><li><a href="Menu.html">Menu</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CartContext">CartContext</a></li><li><a href="global.html#CartProvider">CartProvider</a></li><li><a href="global.html#CategoryCard">CategoryCard</a></li><li><a href="global.html#GoogleAuth">GoogleAuth</a></li><li><a href="global.html#useCart">useCart</a></li><li><a href="global.html#useRoleRequired">useRoleRequired</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed May 01 REMOVED 17:18:59 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: frontend/src/pages/menu.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: frontend/src/pages/menu.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import axios from "axios";
+import React, { Component } from "react";
+import { HOST } from "../const";
+import "../css/MenuComponents/menu.css";
+import { Link } from 'react-router-dom';
+import logo from "../images/REVs LOGO.png";
+import logo2 from "../images/RevTalking.png";
+
+
+/**
+ * The Menu component displays various menu items and allows cycling through different categories.
+ * It fetches item data and weather information to enhance the user experience by suggesting items
+ * based on the current weather conditions.
+ */
+class Menu extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      weather: null,
+      data: [],
+      filteredData: [],
+      currentListIndex: 0,
+      itemLists: [
+        {
+          category: "Burgers and Sandwiches",
+          items: [
+            "Double Hamburger",
+            "Bacon Cheeseburger",
+            "Cheeseburger",
+            "Veggieburger",
+            "Chicken Sandwich",
+            "BLT",
+            "Grilled Chicken sandwich",
+            "Spicy Chicken Sandwich",
+          ],
+        },
+        {
+          category: "Drinks",
+          items: [
+            "Coke",
+            "Sprite",
+            "Chocolate Shake",
+            "Strawberry Shake",
+            "Vanilla Shake",
+          ],
+        },
+        {
+          category: "Salads and Fries",
+          items: [
+            "Casear Salad",
+            "Southwest Salad",
+            "French Fries",
+            "Garlic Fries",
+            "Cheese fries",
+          ],
+        },
+        { category: "Limited Time Offers", items: [] },
+      ],
+    };
+  }
+
+  /**
+   * Called immediately after the component is mounted, setting the body class and
+   * initializing data fetching and item cycling.
+   */
+  componentDidMount() {
+    this.fetchData();
+    this.fetchWeatherData();
+    this.startInterval();
+    document.body.classList.add("menu-body");
+  }
+
+  /**
+  * Called immediately before the component is unmounted and destroyed, cleaning up interval
+  * and removing body class.
+  */
+  componentWillUnmount() {
+    clearInterval(this.interval);
+    document.body.classList.remove("menu-body");
+  }
+
+  /**
+  * Starts an interval to cycle through the menu item list every 7 seconds.
+  */
+  startInterval() {
+    this.interval = setInterval(() => {
+      this.cycleItemList();
+    }, 7000); // Change interval before changing to next category. (7000 ms for demo, maybe 20000 for final)
+  }
+
+  /**
+  * Cycles the current list index to display a new category from the item list.
+  */
+  cycleItemList() {
+    const { itemLists, currentListIndex } = this.state;
+    const nextIndex = (currentListIndex + 1) % itemLists.length;
+    this.setState({ currentListIndex: nextIndex }, () => {
+      this.filterData();
+    });
+  }
+
+  /**
+   * Fetches the current weather data from the OpenWeatherMap API.
+   */
+  fetchWeatherData = () => {
+    const weatherApiUrl = "https://api.openweathermap.org/data/2.5/weather?lat=30.61280876442661&amp;lon=-96.34112257794249&amp;appid=REMOVED";
+
+    axios
+      .get(weatherApiUrl)
+      .then((res) => {
+        this.setState({ weather: res.data });
+      })
+      .catch((err) => {
+        console.error("Error fetching weather data: ", err);
+      });
+  };
+
+  /**
+  * Fetches menu items from a backend service.
+  */
+  fetchData = () => {
+    axios
+      .get(`${HOST}/read/items`)
+      .then((res) => {
+        if (res.data.length > 0) {
+          const headers = Object.keys(res.data[0]);
+          this.setState({
+            data: res.data.map((item) => ({ ...item, count: 0 })),
+            headers,
+          });
+          this.filterData();
+        } else {
+          this.setState({ data: [], filteredData: [] });
+        }
+      })
+      .catch((err) => {
+        console.error(err.response || err);
+      });
+  };
+
+  /**
+  * Filters the data based on the current category selection.
+  */
+  filterData = () => {
+    const { data, itemLists, currentListIndex } = this.state;
+    const currentCategory = itemLists[currentListIndex];
+    let filteredData = [];
+
+    if (currentCategory.category === "Limited Time Offers") {
+      const allItems = itemLists.flatMap((category) => category.items);
+      const itemsInOtherCategories = new Set(allItems);
+      for (let item of data) {
+        if (!itemsInOtherCategories.has(item.itemname)) {
+          filteredData.push(item);
+        }
+      }
+    } else {
+      const itemList = currentCategory.items;
+      filteredData = data.filter((item) => itemList.includes(item.itemname));
+    }
+
+    // Remove duplicates
+    filteredData = filteredData.filter(
+      (item, index, self) =>
+        index === self.findIndex((t) => t.itemname === item.itemname)
+    );
+
+    this.setState({ filteredData });
+  };
+
+  /**
+ * Increases the count of an item in the menu data by one. This is typically used to
+ * track the quantity of an item that has been selected or added to a cart.
+ * 
+ * @param {number} index - The index of the item in the data array whose count needs to be incremented.
+ */
+  addItem = (index) => {
+    this.setState((prevState) => ({
+      data: prevState.data.map((item, idx) =>
+        idx === index ? { ...item, count: item.count + 1 } : item
+      ),
+    }));
+  };
+
+  /**
+   * Utility function to return image paths for items.
+   * @param {string} itemName - The name of the item.
+   * @returns {string|undefined} - The path to the item's image or undefined if not found.
+   */
+  getImagePath = (itemName) => {
+    try {
+      return require(`../assets/items/${itemName}.png`);
+    } catch (e) {
+      console.warn(`Could not load image: ${itemName}.png`);
+      return undefined;
+    }
+  };
+
+  /**
+   * Splits data into chunks for rendering.
+   * @param {Array} data - The data to chunk.
+   * @param {number} chunkSize - The size of each chunk.
+   * @returns {Array} - An array of chunks.
+   */
+  chunkData(data, chunkSize) {
+    const chunks = [];
+    for (let i = 0; i &lt; data.length; i += chunkSize) {
+      chunks.push(data.slice(i, i + chunkSize));
+    }
+    return chunks;
+  }
+  /**
+   * 
+   * Renders Menu UI, and any other features necessary for this 
+   * component.
+   */
+  render() {
+    const { filteredData, itemLists, currentListIndex, weather } = this.state;
+    const chunkedData = this.chunkData(filteredData, 5);
+
+    const kelvinToFahrenheit = (kelvin) => {
+      return (kelvin - 273.15) * 9 / 5 + 32;
+    };
+
+    return (
+      &lt;div className="menu-container">
+        &lt;div className="menu-header">
+          &lt;Link to="/" className="home-link">
+            &lt;h1 className="category-name">{itemLists[currentListIndex].category}&lt;/h1>
+          &lt;/Link>
+          &lt;img src={logo} alt="Rev's American Grill" className="menu-logo" />
+          {weather &amp;&amp; (
+            &lt;div className="weather-info">
+              &lt;div className="weather-image">
+                &lt;img src={logo2} alt="Weather" />
+              &lt;/div>
+              {/*305 kelvin = 90 F*/}
+              &lt;div className="weather-text">
+                &lt;p>
+                  {
+                    weather.main.temp > 305
+                      ? "It's hot outside, maybe cool down with a vanilla milkshake?"
+                      : weather.weather[0].id &lt; 600
+                        ? "It's raining outside, as good of a time as any for a salad!"
+                        : weather.main.humidity > 60
+                          ? "It's pretty humid outside, be sure to stay hydrated!"
+                          : weather.main.temp &lt; 286
+                            ? "It's cold outside, warm up with a hot burger fresh off the grill!"
+                            : weather.main.temp &lt; 273
+                              ? "Brrr... it's freezing outside! In times like these, I like having the spicy chicken sandwich!"
+                              : weather.main.temp > 300
+                                ? "It's warm outside, maybe have a refreshing sprite?"
+                                : "I think a nice BLT is great in any wheather!"
+                  }
+                &lt;/p>
+              &lt;/div>
+              &lt;div className="weather-location">
+                &lt;img src={`https://openweathermap.org/img/wn/${weather.weather[0].icon}@2x.png`} alt="Weather Icon" />
+                &lt;p>College Station, TX&lt;/p>
+                &lt;p>{kelvinToFahrenheit(weather.main.temp).toFixed(0)}°F&lt;/p>
+              &lt;/div>
+            &lt;/div>
+          )}
+        &lt;/div>
+        &lt;div className="items-container">
+          {chunkedData.length !== 0 &amp;&amp;
+            chunkedData.map((row, rowIndex) => (
+              &lt;div key={rowIndex} className="menu-row">
+                {row.map((item, itemIndex) => (
+                  &lt;div key={itemIndex} className="menu-card">
+                    &lt;div className="menu-card-img">
+                      &lt;img
+                        src={this.getImagePath(item.itemname.toLowerCase())}
+                        alt={item.itemname}
+                      />
+                    &lt;/div>
+                    &lt;h2>{item.itemname}&lt;/h2>
+                    &lt;h3>${item.itemprice}&lt;/h3>
+                  &lt;/div>
+                ))}
+              &lt;/div>
+            ))}
+        &lt;/div>
+      &lt;/div>
+    );
+  }
+
+
+}
+
+export default Menu;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="module-CartPanel.html">CartPanel</a></li><li><a href="module-Checkout.html">Checkout</a></li><li><a href="module-Kitchen.html">Kitchen</a></li><li><a href="module-ManagerGUI.html">ManagerGUI</a></li><li><a href="module-Order.html">Order</a></li><li><a href="module-routes_customer_items.html">routes/customer_items</a></li><li><a href="module-routes_itemNames_to_itemIds.html">routes/itemNames_to_itemIds</a></li><li><a href="module-routes_manageingredients.html">routes/manageingredients</a></li><li><a href="module-routes_managemenu.html">routes/managemenu</a></li><li><a href="module-routes_manageorder.html">routes/manageorder</a></li><li><a href="module-routes_manageseasonal.html">routes/manageseasonal</a></li><li><a href="module-routes_order.html">routes/order</a></li><li><a href="module-routes_read.html">routes/read</a></li><li><a href="module-subcategoryModal.html">subcategoryModal</a></li></ul><h3>Classes</h3><ul><li><a href="MainPage.html">MainPage</a></li><li><a href="Menu.html">Menu</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CartContext">CartContext</a></li><li><a href="global.html#CartProvider">CartProvider</a></li><li><a href="global.html#CategoryCard">CategoryCard</a></li><li><a href="global.html#GoogleAuth">GoogleAuth</a></li><li><a href="global.html#useCart">useCart</a></li><li><a href="global.html#useRoleRequired">useRoleRequired</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed May 01 REMOVED 17:18:59 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+    "source": {
+      "include": ["backend/routes/", "frontend/src"],
+      "exclude": ["frontend/node_modules/", "backend/node_modules" ],
+      "includePattern": ".+\\.js(doc|x)?$",
+        "excludePattern": "(^|\\/|\\\\)_"
+    },
+    "opts": {
+      "recurse": true,
+      "destination": "./docs"
+    }
+  }
+  

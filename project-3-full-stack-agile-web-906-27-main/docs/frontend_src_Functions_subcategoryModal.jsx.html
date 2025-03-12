@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: frontend/src/Functions/subcategoryModal.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: frontend/src/Functions/subcategoryModal.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import React, { useState, useEffect } from 'react';
+import '../css/CheckoutComponents/subcategoryModal.css';
+import { useCart } from "../Functions/CartContext";
+import veganIcon from "../assets/icons/vegan_icon.png";
+import glutenIcon from "../assets/icons/gluten_icon.png";
+import peanutIcon from "../assets/icons/peanut_icon.png";
+
+/**
+ * Functional component representing a subcategory modal.
+ * @param {Object} props - The properties passed to the component.
+ * @param {Array} props.subcategories - The array of subcategories to be displayed.
+ * @param {boolean} props.isOpen - A boolean indicating whether the modal is open or not.
+ * @param {Function} props.onClose - The function to close the modal.
+ * @param {Array} props.veganItems - The array of vegan items.
+ * @param {Array} props.veganSeasonals - The array of vegan seasonal items.
+ * @param {Array} props.glutenItems - The array of gluten items.
+ * @param {Array} props.glutenSeasonals - The array of gluten seasonal items.
+ * @param {Array} props.peanutItems - The array of peanut items.
+ * @param {Array} props.peanutSeasonals - The array of peanut seasonal items.
+ * @returns {JSX.Element} The JSX element representing the SubcategoryModal component.
+ * @module subcategoryModal
+ */
+const SubcategoryModal = ({ subcategories, isOpen, onClose, veganItems, veganSeasonals, glutenItems, glutenSeasonals, peanutItems, peanutSeasonals }) => {
+  const { addToCart, cartItems, setCartItems } = useCart();
+  const [clickedSubcategories, setClickedSubcategories] = useState({});
+  const [modalRef, setModalRef] = useState(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (modalRef &amp;&amp; !modalRef.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [modalRef, onClose]);
+
+  useEffect(() => {
+    const updatedClickedSubcategories = {};
+    cartItems.forEach(item => {
+      updatedClickedSubcategories[item.itemname] = item.quantity;
+    });
+    setClickedSubcategories(updatedClickedSubcategories);
+  }, [cartItems]);
+
+  /**
+   * Handles click events on subcategory buttons.
+   * Adds the clicked subcategory to the cart and updates the clicked subcategories state.
+   * @param {Object} sub The subcategory object.
+   * @returns {void}
+   * @memberof module:subcategoryModal
+   */
+  const handleClick = (sub) => {
+    setClickedSubcategories(prevClicked => {
+      const updatedClickedSubcategories = { ...prevClicked };
+      updatedClickedSubcategories[sub.itemname] = (updatedClickedSubcategories[sub.itemname] || 0) + 1;
+      return updatedClickedSubcategories;
+    });
+    addToCart(sub);
+  };
+
+  /**
+   * Handles click events on remove item buttons.
+   * Removes the specified subcategory from the cart and updates the clicked subcategories state.
+   * @param {Object} sub The subcategory object.
+   * @returns {void}
+   * @memberof module:subcategoryModal
+   */
+  const handleRemoveItem = (sub) => {
+    setClickedSubcategories(prevClicked => {
+      const updatedClickedSubcategories = { ...prevClicked };
+      if (updatedClickedSubcategories[sub.itemname] > 1) {
+        updatedClickedSubcategories[sub.itemname]--;
+      } else {
+        delete updatedClickedSubcategories[sub.itemname];
+      }
+      return updatedClickedSubcategories;
+    });
+  
+    setCartItems(currentItems => {
+      const updatedItems = [];
+      let itemRemoved = false;
+      for (const item of currentItems) {
+        if (item.itemname === sub.itemname) {
+          if (item.quantity > 1 &amp;&amp; !itemRemoved) {
+            updatedItems.push({ ...item, quantity: item.quantity - 1 });
+            itemRemoved = true; 
+          } else if (!itemRemoved) {
+            itemRemoved = true; 
+            continue;
+          } else {
+            updatedItems.push(item);
+          }
+        } else {
+          updatedItems.push(item);
+        }
+      }
+      return updatedItems;
+    });
+  };
+  
+
+  if (!isOpen) return null;
+
+  return (
+    &lt;div className="subcategory-modal">
+      &lt;div className="modal-content" ref={(ref) => setModalRef(ref)}>
+        {subcategories.map(sub => (
+          &lt;div key={sub.itemname} className="subcategory-item">
+            {clickedSubcategories[sub.itemname] &amp;&amp; (
+              &lt;button onClick={() => handleRemoveItem(sub)} className="remove-item-button">x&lt;/button>
+            )}
+            &lt;button 
+              onClick={() => handleClick(sub)} 
+              className="subcategory-button"
+              style={{
+                boxShadow: clickedSubcategories[sub.itemname] ? '0px 0px 10px rgba(255, 255, 255, 1)' : '4px 4px 10px rgba(0, 0, 0, 0.5)'
+              }}
+            >
+              &lt;div>{sub.itemname} - {sub.itemprice}&lt;/div>
+              &lt;div>
+              {(veganItems.includes(sub.itemname) || veganSeasonals.includes(sub.itemname)) &amp;&amp; (
+                &lt;img src={veganIcon} alt="This item is Vegan" className="dietary-icon" />
+              )}
+              {(glutenItems.includes(sub.itemname) || glutenSeasonals.includes(sub.itemname)) &amp;&amp; (
+                &lt;img src={glutenIcon} alt="This item contains Gluten" className="dietary-icon" />
+              )}
+              {(peanutItems.includes(sub.itemname) || peanutSeasonals.includes(sub.itemname)) &amp;&amp; (
+                &lt;img src={peanutIcon} alt="This item contains Peanuts" className="dietary-icon" />
+              )}
+              &lt;/div>
+            &lt;/button>
+            
+            {clickedSubcategories[sub.itemname] &amp;&amp; (
+              &lt;span className="subcategory-count">x{clickedSubcategories[sub.itemname]} &lt;/span>
+            )}
+          &lt;/div>
+        ))}
+      &lt;/div>
+    &lt;/div>
+  );
+};
+
+export default SubcategoryModal;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="module-CartPanel.html">CartPanel</a></li><li><a href="module-Checkout.html">Checkout</a></li><li><a href="module-Kitchen.html">Kitchen</a></li><li><a href="module-ManagerGUI.html">ManagerGUI</a></li><li><a href="module-Order.html">Order</a></li><li><a href="module-routes_customer_items.html">routes/customer_items</a></li><li><a href="module-routes_itemNames_to_itemIds.html">routes/itemNames_to_itemIds</a></li><li><a href="module-routes_manageingredients.html">routes/manageingredients</a></li><li><a href="module-routes_managemenu.html">routes/managemenu</a></li><li><a href="module-routes_manageorder.html">routes/manageorder</a></li><li><a href="module-routes_manageseasonal.html">routes/manageseasonal</a></li><li><a href="module-routes_order.html">routes/order</a></li><li><a href="module-routes_read.html">routes/read</a></li><li><a href="module-subcategoryModal.html">subcategoryModal</a></li></ul><h3>Classes</h3><ul><li><a href="MainPage.html">MainPage</a></li><li><a href="Menu.html">Menu</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CartContext">CartContext</a></li><li><a href="global.html#CartProvider">CartProvider</a></li><li><a href="global.html#CategoryCard">CategoryCard</a></li><li><a href="global.html#GoogleAuth">GoogleAuth</a></li><li><a href="global.html#useCart">useCart</a></li><li><a href="global.html#useRoleRequired">useRoleRequired</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed May 01 REMOVED 17:18:59 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

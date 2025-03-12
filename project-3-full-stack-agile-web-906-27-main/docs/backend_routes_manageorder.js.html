@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: backend/routes/manageorder.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: backend/routes/manageorder.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @module routes/manageorder
+ * @requires express
+ */
+
+const DB = require("../db");
+const router = require("express").Router();
+
+/**
+ * Handles the HTTP GET request to retrieve recent orders.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when recent orders are retrieved successfully.
+ * @memberof module:routes/manageorder
+ * @function
+ * @name get/recentorders
+ */
+router.get('/recentorders', (req, res) => {
+    const { numOfOrders } = req.query;
+    recentOrders = [];
+    if (!numOfOrders) {
+        DB
+            .query(`SELECT * FROM customer;`)
+            .then(result => {
+                for (let i = 0; i &lt; result.rowCount; i++) {
+                    recentOrders.push(result.rows[i]);
+                }
+                res.status(201).send(recentOrders);
+            })
+            .catch(err => {
+                console.error("Error checking recent orders: ", err);
+                res.status(500).send("Internal server error");
+            });
+    }
+    else {
+        DB
+            .query(`SELECT * FROM customer ORDER BY customerid DESC LIMIT ${numOfOrders};`)
+            .then(result => {
+                for (let i = 0; i &lt; result.rowCount; i++) {
+                    recentOrders.push(result.rows[i]);
+                }
+                res.status(201).send(recentOrders);
+            })
+            .catch(err => {
+                console.error("Error checking recent orders: ", err);
+                res.status(500).send("Internal server error");
+            });
+    }
+})
+
+/**
+ * Handles the HTTP GET request to retrieve incomplete orders.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when incomplete orders are retrieved successfully.
+ * @memberof module:routes/manageorder
+ * @function
+ * @name get/incompleteorders
+ */
+router.get('/incompleteorders', (req, res) => {
+    incompleteOrders = [];
+    DB
+        .query(`SELECT * FROM customer WHERE status = 'Incomplete';`)
+        .then(result => {
+            for (let i = 0; i &lt; result.rowCount; i++) {
+                incompleteOrders.push(result.rows[i]);
+            }
+            res.status(201).send(incompleteOrders);
+        })
+        .catch(err => {
+            console.error("Error checking incomplete orders: ", err);
+            res.status(500).send("Internal server error");
+        });
+})
+
+/**
+ * Handles the HTTP GET request to retrieve order items.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when order items are retrieved successfully.
+ * @memberof module:routes/manageorder
+ * @function
+ * @name get/orderitems
+ */
+router.get('/orderitems', async (req, res) => {
+    const { orders } = req.query;
+    ordersArray = Object.values(orders);
+    const orderItems = [];
+    try {
+        for (const order of ordersArray) {
+            const result = await DB.query(  `SELECT
+                                                customeritems.customerid,
+                                                items.itemname AS regular_item, 
+                                                seasonalitems.itemname AS seasonal_item,
+                                                COUNT(*) AS item_quantity
+                                            FROM 
+                                                customeritems
+                                            LEFT JOIN 
+                                                items ON customeritems.itemid = items.itemid
+                                            LEFT JOIN 
+                                                seasonalitems ON customeritems.seasonalid = seasonalitems.seasonalid
+                                            WHERE 
+                                                customeritems.customerid = ${order.customerid}
+                                            GROUP BY 
+                                                customeritems.customerid, items.itemname, seasonalitems.itemname;`);
+
+            orderItems.push(...result.rows);
+        }
+
+        res.json(orderItems);
+    } catch (error) {
+        console.error("Error fetching order items:", error);
+        res.status(500).send("Internal server error");
+    }
+});
+
+/**
+ * Handles the HTTP POST request to delete an order.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when the order is deleted successfully.
+ * @memberof module:routes/manageorder
+ * @function
+ * @name post/delete
+ */
+router.post('/delete', (req, res) => {
+    const { customerID } = req.body;
+
+    if (!customerID) {
+        return res.status(400).send("Missing Customer ID");
+    }
+
+    try {
+        DB.query(`DELETE FROM customeritems WHERE customerid = ${customerID};`);
+        DB.query(`DELETE FROM customer WHERE customerid = ${customerID};`);
+        res.status(201).send("Order deleted successfully.");
+    } catch (error) {
+        console.error("Error deleting order: ", err);
+            res.status(500).send("Internal server error.");
+    }
+})
+
+/**
+ * Handles the HTTP POST request to update an order.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when the order is updated successfully.
+ * @memberof module:routes/manageorder
+ * @function
+ * @name post/update
+ */
+router.post('/update', (req, res) => {
+    const { customerID, timeOrdered, weekNumber, status } = req.body;
+
+    if (!customerID) {
+        return res.status(400).send("Missing Customer ID (REQUIRED)");
+    }
+
+    if (!timeOrdered &amp;&amp; !weekNumber &amp;&amp; !status) {
+        return res.status(400).send("Nothing to update");
+    }
+
+    const updateFields = [];
+    if (timeOrdered) {
+        updateFields.push(`timeordered = \'${timeOrdered}\'`);
+    }
+    if (weekNumber) {
+        updateFields.push(`weeknumber = ${weekNumber}`);
+    }
+    if (status) {
+        updateFields.push(`status = \'${status}\'`);
+    }
+    const updateQuery = `UPDATE customer SET ${updateFields.join(', ')} WHERE customerid = ${customerID};`;
+
+    DB
+        .query(updateQuery)
+        .then(() => {
+            res.status(201).send("Order updated successfully");
+        })
+        .catch(err => {
+            console.error("Error updating order: ", err);
+            res.status(500).send("Internal server error");
+        });
+})
+
+/**
+ * Handles the HTTP POST request to update the status of an order.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when the status of the order is updated successfully.
+ * @memberof module:routes/manageorder
+ * @function
+ * @name post/updatestatus
+ */
+router.post('/updatestatus', (req, res) => {
+    const { customerID, newStatus } = req.body;
+
+    DB
+        .query(`UPDATE customer SET status = '${newStatus}' WHERE customerID = ${customerID};`)
+        .then(() => {
+            res.status(201).send(`Updated status for order #${customerID} successfully`);
+        })
+        .catch(err => {
+            console.error("Error updating status: ", err);
+            res.status(500).send("Internal server error");
+        })
+})
+
+module.exports = router;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="module-CartPanel.html">CartPanel</a></li><li><a href="module-Checkout.html">Checkout</a></li><li><a href="module-Kitchen.html">Kitchen</a></li><li><a href="module-ManagerGUI.html">ManagerGUI</a></li><li><a href="module-Order.html">Order</a></li><li><a href="module-routes_customer_items.html">routes/customer_items</a></li><li><a href="module-routes_itemNames_to_itemIds.html">routes/itemNames_to_itemIds</a></li><li><a href="module-routes_manageingredients.html">routes/manageingredients</a></li><li><a href="module-routes_managemenu.html">routes/managemenu</a></li><li><a href="module-routes_manageorder.html">routes/manageorder</a></li><li><a href="module-routes_manageseasonal.html">routes/manageseasonal</a></li><li><a href="module-routes_order.html">routes/order</a></li><li><a href="module-routes_read.html">routes/read</a></li><li><a href="module-subcategoryModal.html">subcategoryModal</a></li></ul><h3>Classes</h3><ul><li><a href="MainPage.html">MainPage</a></li><li><a href="Menu.html">Menu</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CartContext">CartContext</a></li><li><a href="global.html#CartProvider">CartProvider</a></li><li><a href="global.html#CategoryCard">CategoryCard</a></li><li><a href="global.html#GoogleAuth">GoogleAuth</a></li><li><a href="global.html#useCart">useCart</a></li><li><a href="global.html#useRoleRequired">useRoleRequired</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed May 01 REMOVED 17:18:59 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

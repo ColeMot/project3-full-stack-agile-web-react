@@ -1,0 +1,108 @@
+@import url("https://fonts.googleapis.com/css2?family=Edu+NSW+ACT+Foundation:wght@400..700&family=Rowdies:wght@300;400;700&display=swap");
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.main-body {
+  --text-size: 16px;
+  --text-size-large: 30px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: linear-gradient(to bottom, #3f312d 0%, #100d0c 100%);
+  animation: fadeIn 1.5s ease-out forwards;
+  font-size: var(--text-size);
+
+}
+
+.colorblind-mode {
+  filter: grayscale(100%); 
+}
+
+.colorblind-toggle {
+  position: absolute;
+  top: 0;
+  right: 180px;
+  cursor: pointer;
+  width: 50px; 
+  height: auto;
+  transition: box-shadow 0.3s ease; 
+}
+
+.colorblind-toggle:hover {
+  filter: drop-shadow(8px 8px 10px rgba(0, 0, 0, 0.7));
+}
+
+.text-size-increased .main-body, .text-size-increased .main-button, .text-size-increased .main-header h1 {
+  font-size: var(--text-size-large); 
+}
+
+ .text-size-toggle {
+  position: absolute;
+  top: 5px; 
+  right: 250px;
+  cursor: pointer;
+  width: 40px; 
+  height: auto;
+  transition: box-shadow 0.3s ease;
+}
+
+.text-size-toggle:hover {
+  filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.7));
+}
+
+#google_translate_element {
+  position: absolute;
+  top: 40px;
+  right: 10px;
+  z-index: 1000;
+}
+
+.main-header {
+  display: flex;
+  justify-content: center;
+  position: relative; 
+  margin-bottom: 130px;
+}
+
+.main-logo {
+  width: 750px;
+  height: auto;
+  margin-top: 20px;
+}
+
+.button-wrapper {
+  display: flex;
+  justify-content: center;
+  flex-wrap: nowrap;
+  margin-top: 20px;
+  padding: 0 20px;
+  align-items: center;
+}
+
+.main-button {
+  background: linear-gradient(to bottom, #370000, #1d0101);
+  color: #ffc700;
+  padding: 20px 40px;
+  cursor: pointer;
+  font-family: "Rowdies";
+  font-size: 18px;
+  border: solid 10px black;
+  border-radius: 10px;
+  margin: 10px;
+  box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.main-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0px 12px 26px rgba(0, 0, 0, 0.9);
+}
+

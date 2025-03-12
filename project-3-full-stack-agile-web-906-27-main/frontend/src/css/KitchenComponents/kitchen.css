@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Edu+NSW+ACT+Foundation:wght@400..700&family=Rowdies:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+
+.kitchen-body {
+    --text-size: 16px;  
+    --text-size-large: 23px;
+}
+
+.back-home-button {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(to bottom, #370000, #1d0101);
+    color: #ffc700;
+    border: 8px solid black;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: "Rowdies";
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    text-decoration: none; 
+}
+
+.colorblind-mode {
+    filter: grayscale(100%); 
+  }
+  
+  .kitchen-colorblind-toggle {
+    position: absolute;
+    top: 0;
+    right: 180px !important;
+    cursor: pointer;
+    width: 50px; 
+    height: auto;
+    transition: box-shadow 0.3s ease; 
+  }
+  
+  .kitchen-colorblind-toggle:hover {
+    filter: drop-shadow(8px 8px 10px rgba(0, 0, 0, 0.7));
+  }
+
+  .kitchen-text-size-toggle {
+    position: absolute;
+    top: 15px; 
+    right: 250px;
+    cursor: pointer;
+    width: 40px; 
+    height: auto;
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .kitchen-text-size-toggle:hover {
+    filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.7));
+  }
+
+
+.text-size-increased, .text-size-increased h1, .text-size-increased h2, .text-size-increased .order-item {
+    font-size: var(--text-size-large);
+}
+
+
+.kitchen-gui {
+    display: flex;
+    border: none;
+}
+
+.content {
+    flex: 1;
+    padding: 20px;
+    background: linear-gradient(to bottom, #3f312d 0%, #1f1a18 100%);
+
+    
+}
+
+.main {
+    padding: 20px;
+    color: aliceblue;
+    background: #370000 !important;
+    border: 8px solid rgb(0, 0, 0);
+}
+
+.incomplete-orders-container,
+.past-orders-container {
+    padding-bottom: 20px; 
+}
+
+.order-item {
+    margin-bottom: 10px;
+    border-bottom: 2px solid #000;
+    padding-bottom: 10px;
+}
+
+.past-orders-container select {
+    padding: 8px;
+}
+
+.order-item select {
+    padding: 5px;
+    margin-top: 5px;
+}
+
+h1 {
+    color: #ffc700; 
+    font-family: "Arvo";
+    padding-bottom: 10px;
+    border-bottom: 2px solid black;
+}

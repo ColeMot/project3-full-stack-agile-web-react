@@ -1,0 +1,302 @@
+@import url('https://fonts.googleapis.com/css2?family=Edu+NSW+ACT+Foundation:wght@400..700&family=Rowdies:wght@300;400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+.order-body {
+  --text-size: 16px;  
+  --text-size-large: 23px;
+    min-height: 100vh; 
+    background: linear-gradient(to bottom, #3f312d 0%, #100d0c 100%);
+    width: 100%; 
+    position: relative; 
+}
+
+.colorblind-mode {
+  filter: grayscale(100%); 
+}
+
+.order-colorblind-toggle {
+  position: absolute;
+  top: 8px !important;
+  left: 250px;
+  cursor: pointer;
+  width: 50px; 
+  height: auto;
+  transition: box-shadow 0.3s ease; 
+}
+
+.order-colorblind-toggle:hover {
+  filter: drop-shadow(8px 8px 10px rgba(0, 0, 0, 0.7));
+}
+
+.order-text-size-toggle {
+  position: absolute;
+  top: 12px !important;
+  left: 320px;
+  cursor: pointer;
+  width: 40px; 
+  height: auto;
+  transition: box-shadow 0.3s ease;
+}
+
+.order-colorblind-toggle:hover {
+  filter: drop-shadow(4px 4px 6px rgba(0, 0, 0, 0.7));
+}
+
+.text-size-increased .order-body,  .text-size-increased .order-body .user-input input,  .text-size-increased .order-body .user-input button,  .text-size-increased .order-body h2,  .text-size-increased .order-body h1 {
+    font-size: var(--text-size-large); 
+}
+
+.home-button {
+    left: 50px; 
+    top: 10px;
+    background: linear-gradient(to bottom, #370000, #1d0101);
+    color: #ffc700;
+    border: 8px solid black;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-family: "Rowdies";
+    box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: absolute;
+    text-decoration: none;
+
+}
+  
+  
+  .split-container {
+    display: flex;
+    justify-content: space-between
+
+  }
+  
+  .item-card {
+    cursor: pointer;
+    width: 25%;
+    background: linear-gradient(to bottom, #370000, #1d0101); 
+    border-radius: 20px;
+    display: flex;
+    padding: 0px;
+    flex-direction: column;
+    justify-content: center;
+    transition: all 0.5s;
+    font-family: 'Rowdies';
+    border: 8px solid black;
+    align-items: center;
+
+  }
+  
+  .item-card:hover {
+    scale: 1.05;
+    transition: all 0.5s;
+    box-shadow: 8px 8px 20px rgba(0, 0, 0, 1);
+  }
+  
+  .item-card-img {
+    width: 100%;
+    border-radius: 20px 20px 0px 0px;
+    height: 170px;
+    display: flex;
+    background-color: #f2f2f2;
+  }
+  .item-card img {
+    margin: auto;
+    max-width: 200px;
+    max-height: 150px;
+  }
+  .item-card h1 {
+    color: #f2f2f2;
+    text-align: center;
+    margin: 10px;
+  }
+  
+  .item-card h2 {
+    color: #ffc700;
+    margin-top: 0px;
+    text-align: center;
+  }
+  
+  .items-row {
+    display: flex;
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: 20px;
+    gap: 50px;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .items-container {
+    padding-top: 40px;
+    margin: 20px;
+    width: 97.5%;
+  }
+  
+
+/*CART STUFF */
+
+.order-summary {
+    width: 400px;
+    background: linear-gradient(to bottom, #3c302c 0%, #171414 100%);
+    right: 0;
+    border: 8px solid black;
+    gap: 15px;
+    display: flex;
+    padding-left: 15px;
+    padding-top: 20px;
+    padding-right: 15px;
+    flex-direction: column;
+    transition: all 1s ease;
+  }
+  
+  .order-summary h4 {
+    color: #ffc700;
+    text-align: right;
+    font-family: "Arvo";
+
+  }
+
+  .order-summary h1 {
+    color: #fffefe;
+    text-align: center;
+    font-family: "Arvo";
+    
+  }
+  
+  .order-summary-hidden {
+    width: 0px;
+    transition: all 1s ease;
+    background-color: #370000;
+  }
+
+  .price-item {
+    width: auto;
+    background: linear-gradient(to bottom, #370000, #1d0101); 
+    border: 8px solid black;
+
+    color: white;
+    font-family: "Arvo";
+    border-radius: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+.checkout-button-container {
+    text-align: center; 
+  }
+  
+  .checkout-button {
+    background: linear-gradient(to bottom, #370000, #1d0101);
+    color: #ffc700;
+    font-size: 20px;
+    font-family: "Rowdies", sans-serif;
+    border: 8px solid black;
+    padding: 15px 30px; 
+    border-radius: 8px; 
+    cursor: pointer;
+    transition: background-color 0.3s ease; 
+  }
+  
+  .checkout-button:hover {
+    scale: 1.05;
+    transition: all 0.5s;
+    box-shadow: 8px 8px 20px rgba(0, 0, 0, 1);
+  }
+
+  .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5); 
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s, opacity 0.5s linear;
+  }
+  
+  .modal.show {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  .modal-content1 {
+    background: linear-gradient(to bottom, #3c302c 0%, #171414 100%);
+    padding: 20px;
+    border-radius: 10px;
+    border: 8px solid black;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    color: rgb(255, 255, 255);
+    font-family: "Arvo";
+
+  }
+  
+  .modal-content h2 {
+    margin-bottom: 20px; 
+  }
+  
+  .modal-buttons {
+    display: flex; 
+    justify-content: center; 
+    gap: 10px; 
+  }
+  
+  .yes-button,
+  .no-button {
+    flex-grow: 1;
+    padding: 10px 20px; 
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-family: "Rowdies", sans-serif;
+  }
+  
+  .yes-button {
+    background-color: #28a745; 
+    color: white;
+  }
+  
+  .yes-button:hover {
+    background-color: #218838; 
+  }
+  
+  .no-button {
+    background-color: #dc3545; 
+    color: white;
+  }
+  
+  .no-button:hover {
+    background-color: #c82333; 
+  }
+  
+  .thank-you-popup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+    background-color: white;
+    color: black;
+    border: 1px solid black;
+    border-radius: 10px;
+    z-index: 1000;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  }
+  
+  .dietary-icon {
+    width:20px;
+    height:auto;
+    
+  }
+
+  .remove-item-button {
+    color: #ffc700 !important;
+  }
+  

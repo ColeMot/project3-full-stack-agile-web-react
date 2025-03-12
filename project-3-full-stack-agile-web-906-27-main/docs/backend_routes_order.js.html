@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: backend/routes/order.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: backend/routes/order.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @module routes/order
+ * @requires express
+ */
+
+const DB = require("../db");
+const router = require("express").Router();
+
+/**
+ * Handles the HTTP GET request to retrieve out of stock items.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when out of stock items are retrieved successfully.
+ * @memberof module:routes/order
+ * @function
+ * @name get/outofstockitems
+ */
+router.get('/outofstockitems', (req, res) => {
+  outOfStockItems = [];
+
+  DB
+    .query(`SELECT DISTINCT items.*
+            FROM items
+            JOIN itemingredients ON items.itemid = itemingredients.itemid
+            JOIN ingredients ON itemingredients.ingredientid = ingredients.ingredientid
+            WHERE ingredients.currentstock &lt;= 0;`)
+    .then((response) => {
+      for (let i = 0; i &lt; response.rowCount; i++) {
+        outOfStockItems.push(response.rows[i]);
+      }
+      res.status(201).send(outOfStockItems);
+    })
+    .catch((error) => {
+      console.error("Error checking out of stock items: ", error);
+      res.status(500).send("Internal server error");
+    })
+})
+
+/**
+ * Handles the HTTP GET request to retrieve out of stock seasonal items.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when out of stock seasonal items are retrieved successfully.
+ * @memberof module:routes/order
+ * @function
+ * @name get/outofstockseasonals
+ */
+router.get('/outofstockseasonals', (req, res) => {
+  outOfStockSeasonals = [];
+
+  DB
+    .query(`SELECT DISTINCT seasonalitems.*
+            FROM seasonalitems
+            JOIN seasonalitemingredients ON seasonalitems.seasonalid = seasonalitemingredients.seasonalid
+            JOIN ingredients ON seasonalitemingredients.ingredientid = ingredients.ingredientid
+            WHERE ingredients.currentstock &lt;= 0;`)
+    .then((response) => {
+      for (let i = 0; i &lt; response.rowCount; i++) {
+        outOfStockSeasonals.push(response.rows[i]);
+      }
+      res.status(201).send(outOfStockSeasonals);
+    })
+    .catch((error) => {
+      console.error("Error checking out of stock seasonal items: ", error);
+      res.status(500).send("Internal server error");
+    })
+})
+
+/**
+ * Handles the HTTP GET request to retrieve dietary items.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when dietary items are retrieved successfully.
+ * @memberof module:routes/order
+ * @function
+ * @name get/dietary/:type
+ */
+router.get('/dietary/:type', (req, res) => {
+  dietaryItems = [];
+
+  if (req.params.type == 'veganitems') {
+    table = 'items';
+    restriction = 'vegan';
+  }
+  else if (req.params.type == 'veganseasonals') {
+    table = 'seasonalitems';
+    restriction = 'vegan';
+  }
+  else if (req.params.type == 'glutenitems') {
+    table = 'items';
+    restriction = 'gluten';
+  }
+  else if (req.params.type == 'glutenseasonals') {
+    table = 'seasonalitems';
+    restriction = 'gluten';
+  }
+  else if (req.params.type == 'peanutitems') {
+    table = 'items';
+    restriction = 'peanut';
+  }
+  else if (req.params.type == 'peanutseasonals') {
+    table = 'seasonalitems';
+    restriction = 'peanut';
+  }
+
+  DB
+    .query(`SELECT * FROM ${table} WHERE ${restriction} = true;`)
+    .then((response) => {
+      for (let i = 0; i &lt; response.rowCount; i++) {
+        dietaryItems.push(response.rows[i]);
+      }
+      res.status(201).send(dietaryItems);
+    })
+    .catch((error) => {
+      console.error(`Error checking ${restriction} items: `, error);
+      res.status(500).send("Internal server error");
+    })
+})
+
+/**
+ * Handles the HTTP POST request to process checkout.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when the checkout process is completed successfully.
+ * @memberof module:routes/order
+ * @function
+ * @name post/checkout
+ */
+router.post("/checkout", (req, res) => {
+  const { order } = req.body;
+  console.log(order);
+
+  let promises = order.map((item) => {
+    return DB.query(
+      `SELECT * FROM ItemIngredients WHERE ItemIngredients.itemId = ${item.id};`
+    ).then((query_res) => {
+      const ingredientIds = query_res.rows.map(
+        (ItemIngredient) => ItemIngredient.ingredientid
+      );
+      const updateCommand = `UPDATE Ingredients
+            SET CurrentStock = CurrentStock - ${item.count}
+            WHERE IngredientID IN (${ingredientIds.join(", ")});`;
+      return DB.query(updateCommand)
+        .then(() => {
+          return DB.query(
+            `SELECT ingredientname, CurrentStock FROM Ingredients WHERE IngredientID IN (${ingredientIds.join(
+              ", "
+            )});`
+          );
+        })
+        .then((query_res) => {
+          const outOfStock = query_res.rows.filter(
+            (ingredient) => ingredient.currentstock &lt;= 0
+          );
+          if (outOfStock.length > 0) {
+            throw new Error(
+              `Can't make order: current stock of ${outOfStock
+                .map((i) => i.ingredientname)
+                .join(", ")} is too low.`
+            );
+          }
+        });
+    });
+  });
+
+  Promise.all(promises)
+    .then(() => {
+      console.log("Order completed");
+      res.status(200).send("Order completed");
+    })
+    .catch((err) => {
+      console.error(err);
+      res.status(500).send(err.message || "An error occurred");
+    });
+});
+
+module.exports = router;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="module-CartPanel.html">CartPanel</a></li><li><a href="module-Checkout.html">Checkout</a></li><li><a href="module-Kitchen.html">Kitchen</a></li><li><a href="module-ManagerGUI.html">ManagerGUI</a></li><li><a href="module-Order.html">Order</a></li><li><a href="module-routes_customer_items.html">routes/customer_items</a></li><li><a href="module-routes_itemNames_to_itemIds.html">routes/itemNames_to_itemIds</a></li><li><a href="module-routes_manageingredients.html">routes/manageingredients</a></li><li><a href="module-routes_managemenu.html">routes/managemenu</a></li><li><a href="module-routes_manageorder.html">routes/manageorder</a></li><li><a href="module-routes_manageseasonal.html">routes/manageseasonal</a></li><li><a href="module-routes_order.html">routes/order</a></li><li><a href="module-routes_read.html">routes/read</a></li><li><a href="module-subcategoryModal.html">subcategoryModal</a></li></ul><h3>Classes</h3><ul><li><a href="MainPage.html">MainPage</a></li><li><a href="Menu.html">Menu</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CartContext">CartContext</a></li><li><a href="global.html#CartProvider">CartProvider</a></li><li><a href="global.html#CategoryCard">CategoryCard</a></li><li><a href="global.html#GoogleAuth">GoogleAuth</a></li><li><a href="global.html#useCart">useCart</a></li><li><a href="global.html#useRoleRequired">useRoleRequired</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed May 01 REMOVED 17:18:59 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

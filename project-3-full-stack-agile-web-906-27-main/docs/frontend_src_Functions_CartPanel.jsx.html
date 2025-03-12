@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: frontend/src/Functions/CartPanel.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: frontend/src/Functions/CartPanel.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import React from 'react';
+import '../css/CheckoutComponents/CartPanel.css'; 
+import { useCart } from "../Functions/CartContext";
+import axios from 'axios'; 
+
+/**
+ * Represents a component that displays the shopping cart panel.
+ * @param {Object} props - The properties passed to the component.
+ * @param {boolean} props.isOpen - Indicates whether the cart panel is open.
+ * @param {function} props.closeCart - Callback function to close the cart panel.
+ * @returns {JSX.Element} The JSX element representing the CartPanel component.
+ * @module CartPanel
+ */
+function CartPanel({ isOpen, closeCart }) {
+  const { cartItems, setCartItems } = useCart();
+
+  /**
+   * Handles the removal of an item from the shopping cart.
+   * @param {Object} item - The item to be removed.
+   * @returns {void}
+   * @memberof module:CartPanel
+   */
+  const handleRemoveItem = (item) => {
+    setCartItems((currentItems) => {
+      return currentItems.reduce((acc, current) => {
+        if (current.itemname === item.itemname) {
+          if (current.quantity > 1) {
+            acc.push({ ...current, quantity: current.quantity - 1 });
+          } 
+        } else {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+    });
+  };
+
+  const subtotal = cartItems.reduce((total, item) => total + item.itemprice * item.quantity, 0);
+  const taxRate = 0.0825; 
+  const tax = subtotal * taxRate;
+  const total = subtotal + tax;
+
+  /**
+   * Proceeds to the payment process by sending the cart items to the server for checkout.
+   * @returns {void}
+   * @memberof module:CartPanel
+   */
+  function proceedToPayment() {
+    const itemNames = cartItems.map(item => item.itemname);
+  
+    axios.post('http://localhost:3001/itemNames_to_itemIds/get-item-ids', { itemNames })
+      .then(response => {
+        const itemsWithIds = response.data; // This should now be an array of { name, id }
+        const orderData = {
+          order: cartItems.map(cartItem => {
+            const itemDetail = itemsWithIds.find(item => item.itemname === cartItem.itemname);
+            return {
+              id: itemDetail ? itemDetail.id : null, // Fallback to null if no ID found
+              count: cartItem.quantity
+            };
+          })
+        };
+  
+        // Continue with the checkout process
+        return axios.post('http://localhost:3001/customer_items/checkout', orderData);
+      })
+      .then(response => {
+        console.log('Order processed successfully:', response.data);
+        // Handle further success actions, such as navigating to a success page
+      })
+      .catch(error => {
+        console.error('Error during order processing:', error);
+        // Handle errors, showing an error message to the user
+      });
+  }
+  
+
+  return (
+    &lt;>
+      {isOpen &amp;&amp; &lt;div className="backdrop" onClick={closeCart}>&lt;/div>}
+      &lt;div className={`cart-panel ${isOpen ? 'open' : ''}`}>
+        &lt;button className="close-cart" onClick={closeCart}>Close Cart&lt;/button>
+        &lt;ul>
+          {cartItems.map((item, index) => (
+            &lt;li key={index} className="cart-item">
+              &lt;div className="item-name-and-details">
+                &lt;span className="item-name">{item.itemname}&lt;/span>
+                &lt;div className="item-quantity-and-price">
+                  &lt;span className="item-quantity">x{item.quantity}&lt;/span>
+                  &lt;span className="item-price-per">${item.itemprice.toFixed(2)}&lt;/span>
+                &lt;/div>
+              &lt;/div>
+              &lt;span className="item-total">${(item.itemprice * item.quantity).toFixed(2)}&lt;/span>
+              &lt;button onClick={() => handleRemoveItem(item)} className="remove-item-button">×&lt;/button>
+            &lt;/li>
+          ))}
+        &lt;/ul>
+        &lt;div className="pricing-details">
+          &lt;div className="subtotal">Subtotal: ${subtotal.toFixed(2)}&lt;/div>
+          &lt;div className="tax">Sales Tax: ${tax.toFixed(2)}&lt;/div>
+          &lt;div className="total">Total: ${total.toFixed(2)}&lt;/div>
+        &lt;/div>
+        &lt;div className="proceed-payment-wrapper">
+          &lt;button className="proceed-payment" onClick={proceedToPayment}>Proceed to Payment&lt;/button>
+        &lt;/div>
+      &lt;/div>
+    &lt;/>
+  );
+}
+
+export default CartPanel;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="module-CartPanel.html">CartPanel</a></li><li><a href="module-Checkout.html">Checkout</a></li><li><a href="module-Kitchen.html">Kitchen</a></li><li><a href="module-ManagerGUI.html">ManagerGUI</a></li><li><a href="module-Order.html">Order</a></li><li><a href="module-routes_customer_items.html">routes/customer_items</a></li><li><a href="module-routes_itemNames_to_itemIds.html">routes/itemNames_to_itemIds</a></li><li><a href="module-routes_manageingredients.html">routes/manageingredients</a></li><li><a href="module-routes_managemenu.html">routes/managemenu</a></li><li><a href="module-routes_manageorder.html">routes/manageorder</a></li><li><a href="module-routes_manageseasonal.html">routes/manageseasonal</a></li><li><a href="module-routes_order.html">routes/order</a></li><li><a href="module-routes_read.html">routes/read</a></li><li><a href="module-subcategoryModal.html">subcategoryModal</a></li></ul><h3>Classes</h3><ul><li><a href="MainPage.html">MainPage</a></li><li><a href="Menu.html">Menu</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CartContext">CartContext</a></li><li><a href="global.html#CartProvider">CartProvider</a></li><li><a href="global.html#CategoryCard">CategoryCard</a></li><li><a href="global.html#GoogleAuth">GoogleAuth</a></li><li><a href="global.html#useCart">useCart</a></li><li><a href="global.html#useRoleRequired">useRoleRequired</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed May 01 REMOVED 17:18:59 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

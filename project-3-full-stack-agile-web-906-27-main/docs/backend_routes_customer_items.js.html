@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: backend/routes/customer_items.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: backend/routes/customer_items.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @module routes/customer_items
+ * @requires express
+ */
+
+const DB = require("../db");
+const router = require("express").Router();
+const { format } = require('date-fns');  // Correctly imported
+
+/**
+ * Retrieves the current date and time formatted as 'yyyy-MM-dd HH:mm:ss'.
+ * @returns {string} The current date and time in the specified format.
+ * @memberof module:routes/customer_items
+ */
+function getCurrentDateTime() {
+    return format(new Date(), 'yyyy-MM-dd HH:mm:ss');
+}
+
+/**
+ * Retrieves the time of the first order placed by a customer.
+ * @returns {Date} The time of the first order placed by a customer.
+ * @throws {Error} If an error occurs while fetching the first time ordered.
+ * @memberof module:routes/customer_items
+ */
+async function getFirstTimeOrdered() {
+    try {
+        const query = 'SELECT timeordered FROM customer ORDER BY customerid LIMIT 1;';
+        const result = await DB.query(query);
+        return result.rows.length > 0 ? result.rows[0].timeordered : new Date();  // Return current date if no entries found
+    } catch (error) {
+        console.error('Error fetching the latest timeordered:', error);
+        throw error;
+    }
+}
+
+/**
+ * Calculates the difference in days between two dates.
+ * @param {Date} date1 The first date.
+ * @param {Date} date2 The second date.
+ * @returns {number} The difference in days between the two dates.
+ * @memberof module:routes/customer_items
+ */
+function getDifferenceInDays(date1, date2) {
+    const diffInMilliseconds = date2 - date1;
+    return Math.abs(Math.round(diffInMilliseconds / (1000 * 60 * 60 * 24)));  // Simplified calculation
+}
+
+/**
+ * Calculates the number of weeks based on the provided number of days.
+ * @param {number} days The number of days.
+ * @returns {number} The number of weeks.
+ * @memberof module:routes/customer_items
+ */
+function getNumberOfWeeks(days) {
+    return Math.floor(days / 7);
+}
+
+/**
+ * Handles the HTTP POST request for processing an order.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when the order is processed.
+ * @memberof module:routes/customer_items
+ * @function
+ * @name post/checkout
+ */
+router.post('/checkout', async (req, res) => {
+    const { order } = req.body;
+    if (!order || !order.length) {
+        return res.status(400).send('Invalid order data');
+    }
+
+    try {
+        const current_time_str = getCurrentDateTime();
+        const first_customer_time = new Date(await getFirstTimeOrdered());
+
+        const daysDifference = getDifferenceInDays(first_customer_time, new Date(current_time_str));
+        const totalWeeks = getNumberOfWeeks(daysDifference);
+
+        const weekInsert = totalWeeks + 1;
+        const orderStatus = "Incomplete";
+        
+        await DB.query('INSERT INTO customer (timeordered, weeknumber, status) VALUES ($1, $2, $3)', [current_time_str, weekInsert, orderStatus]);
+
+        await DB.query('BEGIN');
+
+        const customerResult = await DB.query("SELECT customerid FROM customer ORDER BY customerid DESC LIMIT 1");
+        if (customerResult.rows.length === 0) {
+            await DB.query('ROLLBACK');
+            return res.status(404).send("No customers found.");
+        }
+        const customerid = customerResult.rows[0].customerid;
+
+        for (let i = 0; i &lt; order.length; i++) {
+            const itemid = order[i].id;
+            const count = order[i].count;
+            for (let j = 0; j &lt; count; j++) {
+                await DB.query('INSERT INTO customeritems (itemid, customerid) VALUES ($1, $2)',
+                               [itemid, customerid]);
+            }
+        }
+            
+        
+
+        await DB.query('COMMIT');
+        res.send(`Order processed successfully. Days since last order: ${daysDifference}`);
+    } catch (error) {
+        await DB.query('ROLLBACK');
+        console.error('Failed to process order:', error);
+        res.status(500).send('Failed to process order');
+    }
+});
+
+/**
+ * Handles the HTTP GET request for fetching popular items.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when popular items are fetched.
+ * @memberof module:routes/customer_items
+ * @function
+ * @name get/popular
+ */
+router.get('/popular', (req, res) => {
+    popularItems = [];
+    DB
+        .query(`SELECT
+                    items.itemname AS item_name,
+                    COUNT(customeritems.itemid) AS total_sales
+                FROM
+                    customeritems
+                JOIN
+                    items ON customeritems.itemid = items.itemid
+                GROUP BY
+                    items.itemname
+                UNION
+                SELECT
+                    seasonalitems.itemname AS item_name,
+                    COUNT(customeritems.seasonalid) AS total_sales
+                FROM
+                    customeritems
+                JOIN
+                    seasonalitems ON customeritems.seasonalid = seasonalitems.seasonalid
+                GROUP BY
+                    seasonalitems.itemname
+                ORDER BY
+                    total_sales DESC
+                LIMIT 5;`)
+        .then((response) => {
+            for (let i = 0; i &lt; response.rowCount; i++) {
+                popularItems.push(response.rows[i]);
+            }
+            res.status(201).send(popularItems);
+        })
+        .catch((error) => {
+            console.error("Failed to fetch popular items: ", error);
+            res.status(500).send("Internal server error");
+        })
+})
+
+module.exports = router;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="module-CartPanel.html">CartPanel</a></li><li><a href="module-Checkout.html">Checkout</a></li><li><a href="module-Kitchen.html">Kitchen</a></li><li><a href="module-ManagerGUI.html">ManagerGUI</a></li><li><a href="module-Order.html">Order</a></li><li><a href="module-routes_customer_items.html">routes/customer_items</a></li><li><a href="module-routes_itemNames_to_itemIds.html">routes/itemNames_to_itemIds</a></li><li><a href="module-routes_manageingredients.html">routes/manageingredients</a></li><li><a href="module-routes_managemenu.html">routes/managemenu</a></li><li><a href="module-routes_manageorder.html">routes/manageorder</a></li><li><a href="module-routes_manageseasonal.html">routes/manageseasonal</a></li><li><a href="module-routes_order.html">routes/order</a></li><li><a href="module-routes_read.html">routes/read</a></li><li><a href="module-subcategoryModal.html">subcategoryModal</a></li></ul><h3>Classes</h3><ul><li><a href="MainPage.html">MainPage</a></li><li><a href="Menu.html">Menu</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CartContext">CartContext</a></li><li><a href="global.html#CartProvider">CartProvider</a></li><li><a href="global.html#CategoryCard">CategoryCard</a></li><li><a href="global.html#GoogleAuth">GoogleAuth</a></li><li><a href="global.html#useCart">useCart</a></li><li><a href="global.html#useRoleRequired">useRoleRequired</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed May 01 REMOVED 17:18:59 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

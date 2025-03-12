@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: backend/routes/manageingredients.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: backend/routes/manageingredients.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * @module routes/manageingredients
+ * @requires express
+ */
+
+const DB = require("../db");
+const router = require("express").Router();
+
+/**
+ * Handles the HTTP POST request to update an ingredient in the database.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when the ingredient is updated successfully.
+ * @memberof module:routes/manageingredients
+ * @function
+ * @name post/update
+ */
+router.post('/update', (req, res) => {
+    const {ingredientName, newName, initialStock, currentStock, pricePerUnit } = req.body;
+    
+    if (!ingredientName) {
+        return res.status(400).send("Missing Ingredient Name (REQUIRED)");
+    }
+    if (!newName &amp;&amp; !initialStock &amp;&amp; !currentStock &amp;&amp; !pricePerUnit) {
+        return res.status(400).send("Nothing to update");
+    }
+    
+    const updateFields = [];
+    if (newName) {
+        updateFields.push(`ingredientname = \'${newName}\'`);
+    }
+    if (initialStock) {
+        updateFields.push(`initialstock = ${initialStock}`);
+    }
+    if (currentStock) {
+        updateFields.push(`currentstock = ${currentStock}`);
+    }
+    if (pricePerUnit) {
+        updateFields.push(`priceperunit = ${pricePerUnit}`);
+    }
+    const updateQuery = `UPDATE ingredients SET ${updateFields.join(', ')} WHERE ingredientname = '${ingredientName}';`;
+    
+    DB
+        .query(updateQuery)
+        .then(() => {
+            res.status(201).send("Ingredient updated successfully");
+        })
+        .catch(err => {
+            console.error("Error updating ingredient: ", err);
+            res.status(500).send("Internal server error");
+        });
+});
+
+/**
+ * Handles the HTTP POST request to add a new ingredient to the database.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when the ingredient is added successfully.
+ * @memberof module:routes/manageingredients
+ * @function
+ * @name post/add
+ */
+router.post('/add', (req, res) => {
+    const { ingredientName, initialStock, currentStock, pricePerUnit } = req.body;
+
+    if (!ingredientName || !initialStock || !currentStock || !pricePerUnit) {
+        return res.status(400).send("Missing field(s)");
+    }
+
+    DB
+        .query(`INSERT INTO ingredients (ingredientname, initialstock, currentstock, priceperunit) VALUES (\'${ingredientName}\', $1, $2, $3);`, [initialStock, currentStock, pricePerUnit])
+        .then(() => {
+            res.status(201).send("Ingredient added successfully.");
+        })
+        .catch(err => {
+            console.error("Error adding ingredient: ", err);
+            res.status(500).send("Internal server error.");
+        });
+});
+
+/**
+ * Handles the HTTP POST request to delete an ingredient from the database.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {Promise&lt;void>} A promise that resolves when the ingredient is deleted successfully.
+ * @memberof module:routes/manageingredients
+ * @function
+ * @name post/delete
+ */
+router.post('/delete', (req, res) => {
+    const { ingredientID, ingredientName } = req.body;
+
+    if(!ingredientID || !ingredientName) {
+        return res.status(400).send("Missing field(s)");
+    }
+    
+    DB
+        .query(`SELECT * FROM ingredients WHERE ingredientid = ${ingredientID} AND ingredientName = '${ingredientName}'`)
+        .then((result) => {
+            if (result.rowCount === 0) {
+                return res.status(400).send("ID and Name do not match. No deletion occurred.");
+            }
+            else {
+                DB.query(`DELETE FROM seasonalitemingredients WHERE ingredientid = ${ingredientID};`);
+                DB.query(`DELETE FROM itemingredients WHERE ingredientid = ${ingredientID};`);
+                DB.query(`DELETE FROM ingredients WHERE ingredientid = ${ingredientID} AND ingredientname = \'${ingredientName}\';`);
+                res.status(202).send("Ingredient deleted successfully.");
+            }
+        })
+        .catch(err => {
+            console.error("Error deleting ingredient: ", err);
+            res.status(500).send("Internal server error");
+        })
+})
+
+/**
+ * Handles the HTTP GET request to retrieve ingredients that require restocking.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {void} Returns a list of ingredients that need restocking.
+ * @memberof module:routes/manageingredients
+ * @function
+ * @name get/restock
+ */
+router.get('/restock', (req, res) => {
+    data = [];
+    DB
+    .query(`SELECT * FROM Ingredients WHERE CurrentStock &lt; 0.2 * InitialStock;`)
+    .then(query_res => {
+    for (let i = 0; i &lt; query_res.rowCount; i++){
+        data.push(query_res.rows[i]);
+    }
+    res.send(data);
+    }).catch((err)=>res.status(500).send(err.code="42P01"?"table doesn't exist":"internal error"));
+    });
+
+/**
+ * Handles the HTTP GET request to retrieve product usage between two timestamps.
+ * @param {Object} req The request object.
+ * @param {Object} res The response object.
+ * @returns {void} Returns product usage data within the specified time range.
+ * @memberof module:routes/manageingredients
+ * @function
+ * @name get/productusage
+ */
+router.get('/productusage', (req, res) => {
+    const { timestamp1, timestamp2 } = req.query;
+
+    if(!timestamp1 || !timestamp2) {
+        return res.status(400).send("Missing field(s)");
+    }
+
+    data = [];
+    DB
+    // .query(`SELECT * FROM Ingredients WHERE CurrentStock &lt; 0.2 * InitialStock;`)
+    .query(`SELECT i.IngredientID, i.IngredientName, COUNT(*) AS total_used FROM customeritems ci JOIN items it ON ci.ItemID = it.ItemID JOIN itemingredients ii ON it.ItemID = ii.ItemID JOIN ingredients i ON ii.IngredientID = i.IngredientID WHERE ci.CustomerID IN ( SELECT CustomerID FROM customer WHERE TimeOrdered BETWEEN TO_TIMESTAMP(\'${timestamp1}\', 'YYYY-MM-DD HH24:MI:SS') AND TO_TIMESTAMP(\'${timestamp2}\', 'YYYY-MM-DD HH24:MI:SS')) GROUP BY i.IngredientID, i.IngredientName;`)
+    .then(query_res => {
+    for (let i = 0; i &lt; query_res.rowCount; i++){
+        data.push(query_res.rows[i]);
+    }
+    res.send(data);
+    }).catch((err)=>res.status(500).send(err.code="42P01"?"table doesn't exist":"internal error"));
+    });
+
+module.exports = router;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="module-CartPanel.html">CartPanel</a></li><li><a href="module-Checkout.html">Checkout</a></li><li><a href="module-Kitchen.html">Kitchen</a></li><li><a href="module-ManagerGUI.html">ManagerGUI</a></li><li><a href="module-Order.html">Order</a></li><li><a href="module-routes_customer_items.html">routes/customer_items</a></li><li><a href="module-routes_itemNames_to_itemIds.html">routes/itemNames_to_itemIds</a></li><li><a href="module-routes_manageingredients.html">routes/manageingredients</a></li><li><a href="module-routes_managemenu.html">routes/managemenu</a></li><li><a href="module-routes_manageorder.html">routes/manageorder</a></li><li><a href="module-routes_manageseasonal.html">routes/manageseasonal</a></li><li><a href="module-routes_order.html">routes/order</a></li><li><a href="module-routes_read.html">routes/read</a></li><li><a href="module-subcategoryModal.html">subcategoryModal</a></li></ul><h3>Classes</h3><ul><li><a href="MainPage.html">MainPage</a></li><li><a href="Menu.html">Menu</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CartContext">CartContext</a></li><li><a href="global.html#CartProvider">CartProvider</a></li><li><a href="global.html#CategoryCard">CategoryCard</a></li><li><a href="global.html#GoogleAuth">GoogleAuth</a></li><li><a href="global.html#useCart">useCart</a></li><li><a href="global.html#useRoleRequired">useRoleRequired</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed May 01 REMOVED 17:18:59 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

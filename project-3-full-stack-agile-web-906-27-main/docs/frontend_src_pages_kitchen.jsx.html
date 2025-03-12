@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: frontend/src/pages/kitchen.jsx</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: frontend/src/pages/kitchen.jsx</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import React, { useState, useEffect } from 'react';
+import axios from "axios";
+import "../css/KitchenComponents/kitchen.css";
+import { Link } from "react-router-dom";
+import colorblindIcon from "../images/red-green.png";
+import textSizeIcon from "../images/text-size-icon.png";
+
+/**
+ * Represents the kitchen order management system for handling order statuses,
+ * displaying incomplete and past orders, and modifying accessibility settings.
+ *
+ * @returns {JSX.Element} The kitchen component with order management features.
+ * @module Kitchen
+ */
+const Kitchen = () => {
+    const [message, setMessage] = useState("");
+    const [incompleteOrders, setIncompleteOrders] = useState([]);
+    const [incompleteOrderItems, setIncompleteOrderItems] = useState([]);
+    const [pastOrders, setPastOrders] = useState([]);
+    const [pastOrderItems, setPastOrderItems] = useState([]);
+    const [numPastOrders, setNumPastOrders] = useState(10);
+    const [fetchingIncompletes, setFetchingIncompletes] = useState(false);
+    const [fetchingPasts, setFetchingPasts] = useState(false);
+    const [colorBlindMode, setColorBlindMode] = useState(false);
+    const [textSizeIncreased, setTextSizeIncreased] = useState(false);
+
+    /**
+    * Initializes and cleans up the kitchen environment UI settings.
+    * Fetches incomplete and past orders when the component mounts.
+    */
+    useEffect(() => {
+        document.body.classList.add("kitchen-body");
+        fetchIncompleteOrders();
+        fetchPastOrders();
+        return () => {
+            document.body.classList.remove("kitchen-body");
+        };
+    }, [numPastOrders]);
+
+    /**
+     * Toggles the color blind mode for better accessibility.
+     * @memberof module:Kitchen
+     */
+    const toggleColorBlindMode = () => {
+        setColorBlindMode(!colorBlindMode);
+        if (colorBlindMode) {
+            document.body.classList.remove("colorblind-mode");
+        } else {
+            document.body.classList.add("colorblind-mode");
+        }
+    };
+
+    /**
+    * Toggles the text size for increased readability.
+    * @memberof module:Kitchen
+    */
+    const toggleTextSize = () => {
+        setTextSizeIncreased(prevTextSizeIncreased => {
+            const newState = !prevTextSizeIncreased;
+            if (newState) {
+                document.body.classList.add("text-size-increased");
+            } else {
+                document.body.classList.remove("text-size-increased");
+            }
+            return newState;
+        });
+    };
+
+
+    /**
+     * Effect hook that triggers fetching of items for incomplete orders.
+     * It only runs when there are incomplete orders and when it is not currently fetching past orders.
+     * This is to prevent simultaneous network requests for item details of different order types,
+     * ensuring that the UI updates are manageable and that the server is not overwhelmed.
+     * @memberof module:Kitchen
+     */
+    useEffect(() => {
+        if (incompleteOrders.length > 0 &amp;&amp; !fetchingPasts) fetchIncompleteOrderItems();
+    }, [incompleteOrders, fetchingPasts]);
+
+    /**
+    * Effect hook that triggers fetching of items for past orders.
+    * It only runs when there are past orders and when it is not currently fetching incomplete orders.
+    * Similar to the above effect, this setup ensures that fetching operations for past and incomplete
+    * orders do not interfere with each other, allowing for controlled data retrieval and UI updates.
+    * @memberof module:Kitchen
+    */
+    useEffect(() => {
+        if (pastOrders.length > 0 &amp;&amp; !fetchingIncompletes) fetchPastOrderItems();
+    }, [pastOrders, fetchingIncompletes]);
+
+    /**
+    * Fetches incomplete orders from the backend.
+    * @memberof module:Kitchen
+    */
+    const fetchIncompleteOrders = () => {
+        axios
+            .get(`http://localhost:3001/manageorder/incompleteorders`)
+            .then((response) => {
+                setIncompleteOrders(response.data);
+            })
+            .catch((error) => {
+                console.error("Error fetching active orders: ", error);
+            });
+    };
+
+    /**
+     * Fetches items for the incomplete orders.
+     * @memberof module:Kitchen
+     */
+    const fetchIncompleteOrderItems = () => {
+        setFetchingIncompletes(true);
+        axios
+            .get(`http://localhost:3001/manageorder/orderitems`, {
+                params: { orders: incompleteOrders }
+            })
+            .then((response) => {
+                setIncompleteOrderItems(response.data);
+            })
+            .catch((error) => {
+                console.error("Error fetching order items: ", error);
+            })
+            .finally(() => {
+                setFetchingIncompletes(false);
+            });
+    };
+
+    /**
+     * Fetches past orders from the backend.
+     * @memberof module:Kitchen
+     */
+    const fetchPastOrders = () => {
+        axios
+            .get(`http://localhost:3001/manageorder/recentorders`, {
+                params: { numOfOrders: numPastOrders }
+            })
+            .then((response) => {
+                setPastOrders(response.data);
+            })
+            .catch((error) => {
+                console.error("Error fetching past orders: ", error);
+            });
+    };
+
+    /**
+    * Fetches items for the past orders.
+    * @memberof module:Kitchen
+    */
+    const fetchPastOrderItems = () => {
+        setFetchingPasts(true);
+        axios
+            .get(`http://localhost:3001/manageorder/orderitems`, {
+                params: { orders: pastOrders }
+            })
+            .then((response) => {
+                setPastOrderItems(response.data);
+            })
+            .catch((error) => {
+                console.error("Error fetching order items: ", error);
+            }).finally(() => {
+                setFetchingPasts(false);
+            });
+    };
+
+    /**
+     * Handles status changes for incomplete orders.
+     * @param {Event} e - The event object from the select element.
+     * @param {number} index - Index of the order in the incompleteOrders array.
+     * @memberof module:Kitchen
+     */
+    const handleStatusChangeIncomplete = (e, index) => {
+        const newStatus = e.target.value;
+        setIncompleteOrders(prevIncompleteOrders => {
+            const updatedIncompleteOrders = [...prevIncompleteOrders];
+            updatedIncompleteOrders[index].status = newStatus;
+            return updatedIncompleteOrders;
+        });
+
+        const customerID = incompleteOrders[index].customerid;
+        axios
+            .post(`http://localhost:3001/manageorder/updatestatus/`, { customerID, newStatus })
+            .then((response) => {
+                console.log(response.data);
+                setMessage(`Order #${customerID} status successfully updated to ${newStatus}.`);
+                fetchIncompleteOrders();
+                fetchPastOrders();
+            })
+            .catch((error) => {
+                console.error(`Error updating order #${customerID}:`, error);
+                setMessage(`Error updating order #${customerID}.`);
+            });
+    };
+
+    /**
+     * Handles status changes for past orders.
+     * @param {Event} e - The event object from the select element.
+     * @param {number} index - Index of the order in the pastOrders array.
+     * @memberof module:Kitchen
+     */
+    const handleStatusChangePast = (e, index) => {
+        const newStatus = e.target.value;
+        setPastOrders(prevPastOrders => {
+            const updatedPastOrders = [...prevPastOrders];
+            updatedPastOrders[index].status = newStatus;
+            return updatedPastOrders;
+        });
+
+        const customerID = pastOrders[index].customerid;
+        axios
+            .post(`http://localhost:3001/manageorder/updatestatus/`, { customerID, newStatus })
+            .then((response) => {
+                console.log(response.data);
+                setMessage(`Order #${customerID} status successfully updated to ${newStatus}.`);
+                fetchIncompleteOrders();
+                fetchPastOrders();
+            })
+            .catch((error) => {
+                console.error(`Error updating order #${customerID}:`, error);
+                setMessage(`Error updating order #${customerID}.`);
+            });
+    };
+
+    /**
+    * Handles changes in the number of past orders to fetch and display.
+    * @param {Event} e - The event object from the select element.
+    * @memberof module:Kitchen
+    */
+    const handleNumPastOrdersChange = (e) => {
+        setNumPastOrders(parseInt(e.target.value));
+    };
+
+    /**
+     * Formats a timestamp into a readable date-time string.
+     * @param {string} timestamp - The timestamp to format.
+     * @returns {string} The formatted date-time string.
+     * @memberof module:Kitchen
+     */
+    const formatTime = (timestamp) => {
+        const date = new Date(timestamp);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+
+        return `${year}-${month}-${day} ${hours}:${minutes}`;
+    };
+
+    /**
+     * Renders the Kitchen Compnent
+     */
+    return (
+        &lt;div className="content">
+            &lt;div className="main">
+                &lt;Link to="/" className="back-home-button">Back to Home&lt;/Link>
+                &lt;img
+                    src={colorblindIcon}
+                    alt="Colorblind Mode"
+                    className="kitchen-colorblind-toggle"
+                    onClick={toggleColorBlindMode}
+                    style={{ position: 'absolute', top: '10px', right: '10px', cursor: 'pointer' }}
+                />
+
+                &lt;img
+                    src={textSizeIcon}
+                    alt="Increase Text Size"
+                    className="kitchen-text-size-toggle"
+                    onClick={toggleTextSize}
+                    style={{ position: 'absolute', top: '15px', right: '250px', cursor: 'pointer' }}
+                />
+
+                &lt;p>{message}&lt;/p>
+                &lt;div className="incomplete-orders-container">
+                    &lt;h1>Active orders:&lt;/h1>
+                    {incompleteOrders.map((order, index) => (
+                        &lt;div key={index} className="order-item">
+                            &lt;p>Order ID: {order.customerid}, Time: {formatTime(order.timeordered)}, Status: {order.status}&lt;/p>
+                            {incompleteOrderItems
+                                .filter((item) => item.customerid === order.customerid)
+                                .map((item) => (
+                                    &lt;tr
+                                        style={{
+                                            backgroundColor: "#370000",
+                                            border: 'none'
+                                        }}>
+                                        &lt;td style={{ border: 'none' }}>{item.regular_item ? item.regular_item : item.seasonal_item}: &lt;/td>
+                                        &lt;td style={{ border: 'none' }}>{item.item_quantity}&lt;/td>
+                                    &lt;/tr>
+                                ))}
+                            &lt;select value={order.status} onChange={(e) => handleStatusChangeIncomplete(e, index)}>
+                                &lt;option value="Canceled">Canceled&lt;/option>
+                                &lt;option value="Completed">Completed&lt;/option>
+                                &lt;option value="Incomplete">Incomplete&lt;/option>
+                            &lt;/select>
+                        &lt;/div>
+                    ))}
+                &lt;/div>
+                &lt;div className="past-orders-container">
+                    &lt;h1>Past orders:&lt;/h1>
+                    &lt;div>
+                        &lt;select value={numPastOrders} onChange={(e) => handleNumPastOrdersChange(e)}>
+                            &lt;option value={10}>10 Orders&lt;/option>
+                            &lt;option value={20}>20 Orders&lt;/option>
+                            &lt;option value={50}>50 Orders&lt;/option>
+                        &lt;/select>
+                    &lt;/div>
+                    {pastOrders.map((order, index) => (
+                        &lt;div key={index} className="order-item">
+                            &lt;p>Order ID: {order.customerid}, Time: {formatTime(order.timeordered)}, Status: {order.status}&lt;/p>
+                            {pastOrderItems
+                                .filter((item) => item.customerid === order.customerid)
+                                .map((item) => (
+                                    &lt;tr
+                                        style={{
+                                            backgroundColor: "#370000",
+                                            border: 'none'
+                                        }}>
+                                        &lt;td style={{ border: 'none' }}>{item.regular_item ? item.regular_item : item.seasonal_item}: &lt;/td>
+                                        &lt;td style={{ border: 'none' }}>{item.item_quantity}&lt;/td>
+                                    &lt;/tr>
+                                ))}
+                            &lt;select defaultValue={order.status} onChange={(e) => handleStatusChangePast(e, index)}>
+                                &lt;option value="Canceled">Canceled&lt;/option>
+                                &lt;option value="Completed">Completed&lt;/option>
+                                &lt;option value="Incomplete">Incomplete&lt;/option>
+                            &lt;/select>
+                        &lt;/div>
+                    ))}
+                &lt;/div>
+            &lt;/div>
+        &lt;/div>
+    );
+};
+
+export default Kitchen;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-Admin.html">Admin</a></li><li><a href="module-CartPanel.html">CartPanel</a></li><li><a href="module-Checkout.html">Checkout</a></li><li><a href="module-Kitchen.html">Kitchen</a></li><li><a href="module-ManagerGUI.html">ManagerGUI</a></li><li><a href="module-Order.html">Order</a></li><li><a href="module-routes_customer_items.html">routes/customer_items</a></li><li><a href="module-routes_itemNames_to_itemIds.html">routes/itemNames_to_itemIds</a></li><li><a href="module-routes_manageingredients.html">routes/manageingredients</a></li><li><a href="module-routes_managemenu.html">routes/managemenu</a></li><li><a href="module-routes_manageorder.html">routes/manageorder</a></li><li><a href="module-routes_manageseasonal.html">routes/manageseasonal</a></li><li><a href="module-routes_order.html">routes/order</a></li><li><a href="module-routes_read.html">routes/read</a></li><li><a href="module-subcategoryModal.html">subcategoryModal</a></li></ul><h3>Classes</h3><ul><li><a href="MainPage.html">MainPage</a></li><li><a href="Menu.html">Menu</a></li></ul><h3>Global</h3><ul><li><a href="global.html#CartContext">CartContext</a></li><li><a href="global.html#CartProvider">CartProvider</a></li><li><a href="global.html#CategoryCard">CategoryCard</a></li><li><a href="global.html#GoogleAuth">GoogleAuth</a></li><li><a href="global.html#useCart">useCart</a></li><li><a href="global.html#useRoleRequired">useRoleRequired</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Wed May 01 REMOVED 17:18:59 GMT-0500 (Central Daylight Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
